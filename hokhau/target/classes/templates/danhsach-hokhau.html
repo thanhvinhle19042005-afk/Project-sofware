@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh Sách Hộ Khẩu</title>
+</head>
+<body>
+<h2>Danh Sách Hộ Khẩu</h2>
+<p><a th:href="@{/hokhau/them}">+ Thêm Hộ Khẩu Mới</a></p>
+
+<table border="1">
+    <thead>
+    <tr>
+        <th>Tên Chủ Hộ</th>
+        <th>ID</th>
+        <th>Địa Chỉ</th>
+        <th>Thao Tác</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="hk : ${danhSachHoKhau}">
+        <td th:text="${hk.tenChuHo}">Nguyễn Văn A</td>
+        <td th:text="${hk.id}">1</td>
+        <td th:text="${hk.diaChi}">Số 123, Phường B</td>
+        <td>
+            <a th:href="@{/hokhau/xoa/{id}(id=${hk.id})}"
+               onclick="return confirm('Bạn có chắc chắn muốn xóa không?');">
+                Xóa
+            </a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm Hộ Khẩu Mới</title>
+</head>
+<body>
+<h2>Thêm Hộ Khẩu Mới</h2>
+
+<form th:action="@{/hokhau/them}" th:object="${hoKhau}" method="post">
+
+    <label for="chuHo">Tên Chủ Hộ:</label>
+    <input type="text" id="chuHo" th:field="*{tenChuHo}"><br><br>
+
+    <label for="chuHo">CCCD:</label>
+    <input type="text" id="id" th:field="*{id}"><br><br>
+
+    <label for="diaChi">Địa Chỉ:</label>
+    <input type="text" id="diaChi" th:field="*{diaChi}"><br><br>
+
+    <button type="submit">Lưu Hộ Khẩu</button>
+</form>
+</body>
+</html>
