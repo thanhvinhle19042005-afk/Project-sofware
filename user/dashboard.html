@@ -35,12 +35,25 @@
             Xin chào, chờ Admin cập nhật hoạt động mới nhé!
           </p>
         </div>
-        <div class="user-info">
+        <div class="user-info" id="userMenuBtn">
           <div class="user-text">
-            <span class="user-name">user</span>
-            <span class="user-role">Thành viên gia đình</span>
+            <span class="user-name" id="displayUserName">user</span>
+            <span class="user-role" id="displayUserRole">thành viên</span>
           </div>
-          <div class="user-avatar">U</div>
+          <div class="user-avatar" id="displayUserAvatar">U</div>
+
+          <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-header">
+                <span id="dropdownName">User Name</span>
+                <small id="dropdownEmail">user@example.com</small>
+            </div>
+            <div class="dropdown-item" onclick="showUserProfile()">
+               <span>👤 Thông tin cá nhân</span>
+            </div>
+            <div class="dropdown-item danger" onclick="handleLogout()">
+               <span>🚪 Đăng xuất</span>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -162,49 +175,18 @@
     </div>
   </div>
 
-  <script>
-    
-    const logoBtn = document.querySelector('.sidebar-logo');
-    const sidebarNav = document.getElementById('sidebarMenu');
-
-    logoBtn.addEventListener('click', () => {
-      
-      sidebarNav.classList.toggle('hidden');
-    });
-    
-    const navItems = document.querySelectorAll(".nav-item");
-    const sections = document.querySelectorAll(".section");
-
-    navItems.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        navItems.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-
-        const sectionName = btn.dataset.section;
-        sections.forEach((sec) => sec.classList.remove("active"));
-        document
-          .getElementById("section-" + sectionName)
-          .classList.add("active");
-      });
-    });
-
-    
-    let currentActivity = null;
-    function openModal(activityName) {
-      currentActivity = activityName;
-      document.getElementById("modalTitle").textContent = "Đăng ký: " + activityName;
-      document.getElementById("modal").classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("modal").classList.add("hidden");
-      currentActivity = null;
-    }
-
-    function confirmRegister() {
-      alert("Đã đăng ký hoạt động: " + currentActivity);
-      closeModal();
-    }
+  <script src = "script.js">
   </script>
+  <div id="profileModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeProfileModal()"></div>
+    <div class="modal-content">
+      <h3 class="modal-title">Hồ sơ cư dân</h3>
+      <div class="profile-details" id="profileContent">
+        </div>
+      <div class="modal-actions" style="margin-top: 20px;">
+        <button class="btn-primary" onclick="closeProfileModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
