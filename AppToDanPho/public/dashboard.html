@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Cư Dân</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="app-body page-dashboard">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo" title="Nhấn để ẩn/hiện menu">
+        <span class="logo-circle">A</span>
+        <span class="logo-text"> App Dân Cư</span>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarMenu">
+        <button class="nav-item active" data-section="overview">
+          Tổng quan
+        </button>
+        <button class="nav-item" data-section="activities">
+          Hoạt động tổ dân phố
+        </button>
+        <button class="nav-item" data-section="history">
+          Lịch sử tham gia
+        </button>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">
+            Cập nhật các hoạt động mới nhất từ Ban quản lý.
+          </p>
+        </div>
+        <div class="user-info">
+          <div class="user-text">
+            <span class="user-name">Đang tải...</span>
+            <span class="user-role">Cư dân</span>
+          </div>
+          <div class="user-avatar">U</div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section id="section-overview" class="section active">
+          <h2 class="section-title">Tổng quan</h2>
+          <div class="cards-grid">
+            <div class="card">
+              <p class="card-label">Hoạt động sắp tới</p>
+              <p class="card-value">--</p>
+            </div>
+            <div class="card">
+              <p class="card-label">Đang diễn ra</p>
+              <p class="card-value">--</p>
+            </div>
+            <div class="card">
+              <p class="card-label">Đã tham gia</p>
+              <p class="card-value">--</p>
+            </div>
+          </div>
+          
+          <h3 class="subsection-title">Thông báo chung</h3>
+          <div class="card">
+            <p style="color: #666; font-style: italic;">
+              Chưa có thông báo quan trọng nào.
+            </p>
+          </div>
+        </section>
+
+        <section id="section-activities" class="section">
+          <h2 class="section-title">Hoạt động tổ dân phố</h2>
+          <div class="filters-row">
+            <input type="text" class="input" placeholder="Tìm theo tên hoạt động..." />
+            <select class="input">
+              <option>Thời gian: Tất cả</option>
+              <option>Tháng này</option>
+            </select>
+            <select class="input">
+              <option>Trạng thái: Tất cả</option>
+              <option>Sắp diễn ra</option>
+            </select>
+          </div>
+          
+          <div class="card table-wrapper">
+            <table class="table" id="activities-table">
+              <thead>
+                <tr>
+                  <th>Tên hoạt động</th>
+                  <th>Thời gian</th>
+                  <th>Địa điểm</th>
+                  <th>Ghi chú</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 20px; color: #888;">
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="section-history" class="section">
+          <h2 class="section-title">Lịch sử hoạt động</h2>
+          <div class="card table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tên hoạt động</th>
+                  <th>Thời gian</th>
+                  <th>Kết quả</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 20px; color: #888;">
+                    Tính năng đang phát triển...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <h3 class="modal-title" id="modalTitle">Đăng ký hoạt động</h3>
+      <p class="modal-text">
+        Bạn có chắc chắn muốn đăng ký tham gia hoạt động này không?
+      </p>
+      <div class="modal-actions">
+        <button class="btn-outline" onclick="closeModal()">Huỷ</button>
+        <button class="btn-primary" onclick="confirmRegister()">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
