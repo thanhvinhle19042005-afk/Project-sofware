@@ -57,14 +57,14 @@ spring.datasource.password=YOUR_PASSWORD
 ### 3. Build the project
 
 ```bash
-mvn clean install
+.\mvnw.cmd clean install
 ```
 
 ### 4. Run the application
 
 **Development mode (H2 Database):**
 ```bash
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 **Production mode (MySQL):**
