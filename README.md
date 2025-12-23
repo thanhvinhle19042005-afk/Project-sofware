@@ -157,11 +157,11 @@ Frontend runs at: `http://localhost:5173`
 - [x] Backend API core features
 - [x] Database schema
 - [x] Authentication system
-- [ ] Frontend UI components
-- [ ] File upload system
-- [ ] Email notifications
-- [ ] Meeting minutes management
-- [ ] Deployment configuration
+- [x] Frontend UI components
+- [x] File upload system
+- [x] Email notifications
+- [x] Meeting minutes management
+- [x] Deployment configuration
 
 ## Contributing
 
