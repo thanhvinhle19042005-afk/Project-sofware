@@ -1,0 +1,123 @@
+/* Black & White Theme Override - Applied globally */
+
+/* Primary colors */
+:root {
+  --color-primary: #000000;
+  --color-secondary: #ffffff;
+  --color-text: #000000;
+  --color-text-inverse: #ffffff;
+  --color-bg: #ffffff;
+  --color-bg-alt: #f5f5f5;
+  --color-border: #000000;
+  --color-hover: #333333;
+  --color-shadow: rgba(0, 0, 0, 0.2);
+}
+
+/* Override all colored backgrounds */
+[style*="background-color"],
+[style*="background:"] {
+  background-color: var(--color-bg) !important;
+  background: var(--color-bg) !important;
+}
+
+/* Override all colored texts */
+[style*="color:"] {
+  color: var(--color-text) !important;
+}
+
+/* Override buttons */
+button,
+.btn,
+[class*="btn-"] {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-inverse) !important;
+  border-color: var(--color-primary) !important;
+}
+
+button:hover,
+.btn:hover,
+[class*="btn-"]:hover {
+  background-color: var(--color-hover) !important;
+  border-color: var(--color-hover) !important;
+}
+
+/* Override links */
+a {
+  color: var(--color-primary) !important;
+}
+
+a:hover {
+  color: var(--color-hover) !important;
+}
+
+/* Override cards and containers */
+.card,
+[class*="-card"],
+[class*="-box"],
+.box {
+  background-color: var(--color-bg) !important;
+  border-color: var(--color-border) !important;
+  border-width: 2px !important;
+}
+
+/* Override status badges and labels */
+[class*="status"],
+[class*="badge"],
+[class*="label"] {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-inverse) !important;
+}
+
+/* Override gradients */
+[style*="gradient"],
+.gradient,
+[class*="gradient"] {
+  background: linear-gradient(135deg, #000000 0%, #333333 100%) !important;
+}
+
+/* Override shadows */
+.shadow,
+[class*="shadow"] {
+  box-shadow: 0 4px 12px var(--color-shadow) !important;
+}
+
+/* Override inputs */
+input,
+textarea,
+select {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #666666 !important;
+  opacity: 1 !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1) !important;
+  color: var(--color-text) !important;
+  background-color: var(--color-bg) !important;
+}
+
+/* Override navbar */
+.navbar,
+[class*="navbar"] {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-inverse) !important;
+}
+
+/* Override tables */
+table thead {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-inverse) !important;
+}
+
+table tbody tr:hover {
+  background-color: var(--color-bg-alt) !important;
+}
