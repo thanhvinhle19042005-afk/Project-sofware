@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* CSS CHO TIMELINE */
+    .timeline-container {
+        margin-top: 20px;
+        padding: 10px;
+        background: #e0e5ec;
+        border-radius: 10px;
+        box-shadow: inset 5px 5px 10px #bec3cf, inset -5px -5px 10px #ffffff;
+    }
+    .timeline-track {
+        position: relative;
+        height: 60px;
+        background: #d1d9e6;
+        border-radius: 5px;
+        margin-top: 25px;
+    }
+    .time-marker {
+        position: absolute;
+        top: -20px;
+        font-size: 10px;
+        transform: translateX(-50%);
+        color: #666;
+    }
+    .event-block {
+        position: absolute;
+        height: 100%;
+        background: rgba(239, 68, 68, 0.7);
+        border-radius: 4px;
+        top: 0;
+        font-size: 10px;
+        color: white;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: help;
+        white-space: nowrap;
+    }
+    .new-event-preview {
+        background: rgba(37, 99, 235, 0.8);
+        z-index: 10;
+        border: 2px solid #fff;
+    }
+    /* CSS CHO SORT HEADER */
+    th.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+    th.sortable:hover {
+        background-color: #e5e7eb;
+    }
+    .sort-icon {
+        margin-left: 5px;
+        font-size: 12px;
+        color: #888;
+    }
+  </style>
+</head>
+<body class="app-body">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><span class="logo-circle">AD</span> Admin</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" onclick="switchTab('citizens')">Quản lý Cư dân</button>
+        <button class="nav-item" onclick="switchTab('activities')">Quản lý Hoạt động</button>
+        <button class="nav-item" onclick="window.location.href='index.html'">Đăng xuất</button>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 class="page-title">Trang Quản Trị</h1>
+        <div class="user-avatar">AD</div>
+      </header>
+
+      <main class="content">
+        <section id="tab-citizens" class="section active">
+          <div class="filters-row">
+            <input type="text" class="input" id="searchCitizenInput" placeholder="Tìm tên hoặc CCCD..." onkeyup="fetchCitizens()">
+          </div>
+          <div class="card table-wrapper">
+            <table class="table" id="citizenTable">
+              <thead>
+                <tr>
+                  <th class="sortable" onclick="handleSort('citizen', 'CCCD')">CCCD <span id="sort-citizen-CCCD" class="sort-icon">⇅</span></th>
+                  <th class="sortable" onclick="handleSort('citizen', 'HoTen')">Họ tên <span id="sort-citizen-HoTen" class="sort-icon">⇅</span></th>
+                  <th class="sortable" onclick="handleSort('citizen', 'NgaySinh')">Ngày sinh <span id="sort-citizen-NgaySinh" class="sort-icon">⇅</span></th>
+                  <th class="sortable" onclick="handleSort('citizen', 'GioiTinh')">Giới tính <span id="sort-citizen-GioiTinh" class="sort-icon">⇅</span></th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="tab-activities" class="section" style="display:none;">
+          <div class="filters-row">
+            <button class="btn-primary" onclick="openActivityModal()">+ Thêm sự kiện mới</button>
+          </div>
+          <div class="card table-wrapper">
+            <table class="table" id="activityTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th class="sortable" onclick="handleSort('activity', 'TenHoatDong')">Tên hoạt động <span id="sort-activity-TenHoatDong" class="sort-icon">⇅</span></th>
+                  <th class="sortable" onclick="handleSort('activity', 'ThoiGianBatDau')">Bắt đầu <span id="sort-activity-ThoiGianBatDau" class="sort-icon">⇅</span></th>
+                  <th class="sortable" onclick="handleSort('activity', 'ThoiGianKetThuc')">Kết thúc <span id="sort-activity-ThoiGianKetThuc" class="sort-icon">⇅</span></th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="activityModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeActivityModal()"></div>
+    <div class="modal-content" style="max-width: 600px;">
+      <h3 class="modal-title">Thêm sự kiện mới</h3>
+      <div class="form-group">
+        <label>Tên hoạt động:</label>
+        <input type="text" id="actName" class="input" style="width:100%">
+      </div>
+      <div class="filters-row" style="margin-top:10px;">
+        <div style="flex:1">
+            <label>Ngày diễn ra:</label>
+            <input type="date" id="actDate" class="input" style="width:100%" onchange="renderTimeLine()">
+        </div>
+        <div style="flex:1">
+            <label>Giờ bắt đầu:</label>
+            <input type="time" id="actStart" class="input" style="width:100%" onchange="renderTimeLine()">
+        </div>
+        <div style="flex:1">
+            <label>Giờ kết thúc:</label>
+            <input type="time" id="actEnd" class="input" style="width:100%" onchange="renderTimeLine()">
+        </div>
+      </div>
+      <div class="timeline-container">
+          <p style="font-size:12px; margin-bottom:5px;">
+              <span style="color:red">■</span> Đã có lịch &nbsp;|&nbsp; <span style="color:blue">■</span> Dự kiến
+          </p>
+          <div class="timeline-track" id="timelineTrack"></div>
+      </div>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="btn-outline" onclick="closeActivityModal()">Huỷ</button>
+        <button class="btn-primary" onclick="saveActivity()">Lưu sự kiện</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editCitizenModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeEditCitizenModal()"></div>
+    <div class="modal-content">
+      <h3 class="modal-title">Cập nhật thông tin</h3>
+      <div class="form-group">
+        <label>Số CCCD:</label>
+        <input type="text" id="editCCCD" class="input" style="width:100%; background: #eee;" readonly>
+      </div>
+      <div class="form-group">
+        <label>Họ và tên:</label>
+        <input type="text" id="editHoTen" class="input" style="width:100%">
+      </div>
+      <div class="filters-row" style="margin-top:10px;">
+        <div style="flex:1">
+            <label>Ngày sinh:</label>
+            <input type="date" id="editNgaySinh" class="input" style="width:100%">
+        </div>
+        <div style="flex:1">
+            <label>Giới tính:</label>
+            <select id="editGioiTinh" class="input" style="width:100%">
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+            </select>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button class="btn-outline" onclick="closeEditCitizenModal()">Huỷ</button>
+        <button class="btn-primary" onclick="saveCitizenChanges()">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
