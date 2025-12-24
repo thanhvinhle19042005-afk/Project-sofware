@@ -49,6 +49,26 @@ public class SuKienController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @GetMapping("/joined")
+    public ResponseEntity<ApiResponse<List<SuKienDTO>>> getJoinedEvents() {
+        try {
+            List<SuKienDTO> events = suKienService.getJoinedEvents();
+            return ResponseEntity.ok(ApiResponse.success(events));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/not-joined")
+    public ResponseEntity<ApiResponse<List<SuKienDTO>>> getNotJoinedEvents() {
+        try {
+            List<SuKienDTO> events = suKienService.getNotJoinedEvents();
+            return ResponseEntity.ok(ApiResponse.success(events));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
     
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")

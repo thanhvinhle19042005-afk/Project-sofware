@@ -45,14 +45,29 @@ public class NotificationAutoService {
                     suKien.getThoiGianBatDau(),
                     suKien.getDiaDiem()
             ));
-            thongBao.setDoKhan(suKien.getLoaiSuKien().equals("EMERGENCY") ? "Khẩn cấp" : "Bình thường");
+            
+            // Check if EMERGENCY
+            // Check for both English and Vietnamese keywords to be safe
+            if ("EMERGENCY".equalsIgnoreCase(suKien.getLoaiSuKien()) || "Khẩn cấp".equalsIgnoreCase(suKien.getLoaiSuKien())) {
+                thongBao.setDoKhan("Khẩn cấp");
+                thongBao.setTieuDe("KHẨN CẤP: " + suKien.getTenSuKien());
+                thongBao.setNoiDung(String.format(
+                    "THÔNG BÁO KHẨN: Sự kiện \"%s\" yêu cầu sự chú ý ngay lập tức. Thời gian: %s. Địa điểm: %s.",
+                    suKien.getTenSuKien(),
+                    suKien.getThoiGianBatDau(),
+                    suKien.getDiaDiem()
+                ));
+            } else {
+                thongBao.setDoKhan("Bình thường");
+            }
+            
             thongBao.setThoiGianGui(LocalDateTime.now());
             thongBao.setMaSuKien(suKien.getMaSuKien());
 
             ThongBao savedNotification = thongBaoRepository.save(thongBao);
 
             // Lấy MaVaiTro của Admin (giả sử là 1)
-            VaiTro adminRole = vaiTroRepository.findByTenVaiTro("ROLE_ADMIN").orElse(null);
+            VaiTro adminRole = vaiTroRepository.findByTenVaiTro("Admin").orElse(null);
             Integer adminRoleId = (adminRole != null) ? adminRole.getMaVaiTro() : 1;
 
             // Gửi đến tất cả người dùng (trừ Admin)

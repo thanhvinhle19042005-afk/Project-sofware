@@ -42,6 +42,25 @@ public class DangKySuKienController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @PostMapping("/admin/register")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<DangKySuKienDTO>> adminRegisterUser(@RequestBody Map<String, Object> request) {
+        try {
+            Integer maSuKien = (Integer) request.get("maSuKien");
+            String cccd = (String) request.get("cccd");
+            
+            if (maSuKien == null || cccd == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Thiếu thông tin mã sự kiện hoặc CCCD"));
+            }
+            
+            DangKySuKienDTO registration = dangKySuKienService.adminRegisterUser(maSuKien, cccd);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Thêm người tham gia thành công", registration));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
     
     @GetMapping("/my-registrations")
     public ResponseEntity<ApiResponse<List<DangKySuKienDTO>>> getMyRegistrations() {

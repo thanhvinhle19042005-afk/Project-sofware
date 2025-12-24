@@ -10,16 +10,28 @@ import './Events.css';
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, upcoming, past
+  const [mainTab, setMainTab] = useState('joined'); // joined, notJoined (for residents)
+  const [subTab, setSubTab] = useState('all'); // all, upcoming, past
   const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [mainTab]); // Refetch when main tab changes (for residents)
 
   const fetchEvents = async () => {
+    setLoading(true);
     try {
-      const response = await suKienAPI.getAll();
+      let response;
+      if (isAdmin()) {
+        response = await suKienAPI.getAll();
+      } else {
+        if (mainTab === 'joined') {
+          response = await suKienAPI.getJoined();
+        } else {
+          response = await suKienAPI.getNotJoined();
+        }
+      }
+
       if (response.success) {
         setEvents(response.data);
       }
@@ -31,11 +43,21 @@ const Events = () => {
   };
 
   const filteredEvents = events.filter((event) => {
-    if (filter === 'all') return true;
     const status = getEventStatus(event);
-    if (filter === 'upcoming') return status === 'Sắp diễn ra' || status === 'Đang diễn ra';
-    if (filter === 'past') return status === 'Đã kết thúc';
-    if (filter === 'cancelled') return event.trangThai === 'Hủy bỏ';
+    
+    // Admin filters
+    if (isAdmin()) {
+      if (subTab === 'all') return true;
+      if (subTab === 'upcoming') return status === 'Sắp diễn ra' || status === 'Đang diễn ra';
+      if (subTab === 'past') return status === 'Đã kết thúc';
+      if (subTab === 'cancelled') return event.trangThai === 'Hủy bỏ';
+      return true;
+    }
+
+    // Resident filters
+    if (subTab === 'all') return true;
+    if (subTab === 'upcoming') return status === 'Sắp diễn ra' || status === 'Đang diễn ra';
+    if (subTab === 'past') return status === 'Đã kết thúc';
     return true;
   });
 
@@ -54,39 +76,62 @@ const Events = () => {
           <h1>Quản lý Hoạt động</h1>
         </div>
 
-        <div className="toolbar">
-          <div className="filter-group" style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-              onClick={() => setFilter('all')}
-            >
-              Tất cả
-            </button>
-            <button
-              className={`filter-btn ${filter === 'upcoming' ? 'active' : ''}`}
-              onClick={() => setFilter('upcoming')}
-            >
-              Sắp diễn ra
-            </button>
-            <button
-              className={`filter-btn ${filter === 'past' ? 'active' : ''}`}
-              onClick={() => setFilter('past')}
-            >
-              Đã kết thúc
-            </button>
-            <button
-              className={`filter-btn ${filter === 'cancelled' ? 'active' : ''}`}
-              onClick={() => setFilter('cancelled')}
-            >
-              Đã hủy
-            </button>
-          </div>
+        <div className="toolbar" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
           
-          {isAdmin() && (
-            <Link to="/events/create" className="btn-add">
-              + Tạo sự kiện mới
-            </Link>
+          {/* Main Tabs for Residents */}
+          {!isAdmin() && (
+            <div className="main-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', width: '100%' }}>
+              <button
+                className={`tab-btn ${mainTab === 'joined' ? 'active' : ''}`}
+                onClick={() => { setMainTab('joined'); setSubTab('all'); }}
+              >
+                Đã tham gia
+              </button>
+              <button
+                className={`tab-btn ${mainTab === 'notJoined' ? 'active' : ''}`}
+                onClick={() => { setMainTab('notJoined'); setSubTab('all'); }}
+              >
+                Chưa tham gia
+              </button>
+            </div>
           )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <div className="filter-group" style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                className={`filter-btn ${subTab === 'all' ? 'active' : ''}`}
+                onClick={() => setSubTab('all')}
+              >
+                Tất cả
+              </button>
+              <button
+                className={`filter-btn ${subTab === 'upcoming' ? 'active' : ''}`}
+                onClick={() => setSubTab('upcoming')}
+              >
+                Sắp diễn ra
+              </button>
+              <button
+                className={`filter-btn ${subTab === 'past' ? 'active' : ''}`}
+                onClick={() => setSubTab('past')}
+              >
+                Đã kết thúc
+              </button>
+              {isAdmin() && (
+                <button
+                  className={`filter-btn ${subTab === 'cancelled' ? 'active' : ''}`}
+                  onClick={() => setSubTab('cancelled')}
+                >
+                  Đã hủy
+                </button>
+              )}
+            </div>
+            
+            {isAdmin() && (
+              <Link to="/events/create" className="btn-add">
+                + Tạo sự kiện mới
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="table-container">

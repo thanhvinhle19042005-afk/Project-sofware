@@ -45,6 +45,17 @@ public class ThongBaoController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    @GetMapping("/sent")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<ThongBaoDTO>>> getSentNotifications() {
+        try {
+            List<ThongBaoDTO> notifications = thongBaoService.getSentNotifications();
+            return ResponseEntity.ok(ApiResponse.success(notifications));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
     
     @PatchMapping("/{notificationId}/read")
     public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Integer notificationId) {

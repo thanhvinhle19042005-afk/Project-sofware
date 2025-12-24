@@ -100,6 +100,15 @@ public class ThongBaoService {
                     nguoiNhanThongBaoRepository.save(nguoiNhan);
                 });
     }
+
+    @Transactional(readOnly = true)
+    public List<ThongBaoDTO> getSentNotifications() {
+        TaiKhoan currentUser = authService.getCurrentUser();
+        List<ThongBao> sentNotifications = thongBaoRepository.findByNguoiGuiId(currentUser.getMaTaiKhoan());
+        return sentNotifications.stream()
+                .map(tb -> convertToDTO(tb, null))
+                .collect(Collectors.toList());
+    }
     
     private ThongBaoDTO convertToDTO(ThongBao thongBao, NguoiNhanThongBao nguoiNhan) {
         ThongBaoDTO dto = new ThongBaoDTO();

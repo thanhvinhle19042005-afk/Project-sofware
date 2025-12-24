@@ -35,6 +35,10 @@ const Navbar = () => {
           <Link to="/schedule" className="sidebar-link">
             {isOpen ? 'Lịch biểu' : 'LB'}
           </Link>
+
+          <Link to="/notifications" className="sidebar-link">
+            {isOpen ? 'Thông báo' : 'TB'}
+          </Link>
           
           {/* Link cho Chủ hộ */}
           {user?.maGiaDinh && (

@@ -49,6 +49,9 @@ public class SuKien {
     
     @Column(name = "TrangThai", length = 30)
     private String trangThai = "Chờ phê duyệt";
+
+    @Column(name = "DaThongBaoNhacNho")
+    private Boolean daThongBaoNhacNho = false;
     
     @Column(name = "NguoiTaoID", length = 12)
     private String nguoiTaoId;
