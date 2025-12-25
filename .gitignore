@@ -1,0 +1,12 @@
+### General ###
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+### Temporary Files ###
+Copilot-Processing.md
+.playwright-mcp/
+
+### Database Dumps ###
+*.sql
