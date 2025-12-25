@@ -52,7 +52,6 @@
   font-size: 14px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  transition: all 0.2s;
   font-family: inherit;
 }
 
@@ -92,7 +91,6 @@
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .btn-cancel {
@@ -110,7 +108,6 @@
 }
 
 .btn-submit:hover:not(:disabled) {
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 

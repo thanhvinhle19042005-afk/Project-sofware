@@ -44,11 +44,9 @@ button {
   background-color: #000000;
   color: #ffffff;
   cursor: pointer;
-  transition: all 0.25s;
 }
 button:hover {
   background-color: #333333;
-  border-color: #333333;
 }
 button:focus,
 button:focus-visible {
@@ -63,7 +61,5 @@ button:focus-visible {
   a:hover {
     color: #747bff;
   }
-  button {
-    background-color: #f9f9f9;
-  }
+  /* Removed button override to keep black buttons */
 }

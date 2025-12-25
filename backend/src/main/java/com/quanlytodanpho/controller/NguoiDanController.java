@@ -21,6 +21,7 @@ public class NguoiDanController {
 
     private final NguoiDanRepository nguoiDanRepository;
     private final GiaDinhRepository giaDinhRepository;
+    private final com.quanlytodanpho.service.ThongBaoService thongBaoService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<NguoiDan>>> getAllNguoiDan() {
@@ -94,6 +95,19 @@ public class NguoiDanController {
         }
         if (newMaGiaDinh != null && !newMaGiaDinh.equals(oldMaGiaDinh)) {
             updateGiaDinhCount(newMaGiaDinh);
+        }
+
+        // Send notification
+        try {
+            thongBaoService.createNotification(
+                "Cập nhật thông tin cá nhân",
+                "Thông tin cá nhân của bạn (CCCD: " + cccd + ") đã được cập nhật bởi quản trị viên.",
+                null,
+                "Bình thường"
+            );
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            System.err.println("Failed to send notification: " + e.getMessage());
         }
 
         return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật người dân thành công", updatedNguoiDan));

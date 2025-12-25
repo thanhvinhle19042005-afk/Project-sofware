@@ -2,21 +2,52 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { thongBaoAPI } from '../api';
 import { formatDateTime } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 import './Notifications.css';
 
 const Notifications = () => {
+  const { isAdmin } = useAuth();
   const [notifications, setNotifications] = useState([]);
+  const [sentNotifications, setSentNotifications] = useState([]);
+  const [activeTab, setActiveTab] = useState('received'); // 'received' or 'sent'
+  
+  // Resident tabs
+  const [categoryTab, setCategoryTab] = useState('normal'); // 'normal' or 'urgent'
+  const [statusTab, setStatusTab] = useState('unread'); // 'unread' or 'read'
+
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newNotification, setNewNotification] = useState({
+    tieuDe: '',
+    noiDung: '',
+    doKhan: 'Bình thường'
+  });
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [activeTab]);
 
   const fetchNotifications = async () => {
+    setLoading(true);
     try {
-      const response = await thongBaoAPI.getMyNotifications();
-      if (response.success) {
-        setNotifications(response.data);
+      if (activeTab === 'received') {
+        const response = await thongBaoAPI.getMyNotifications();
+        if (response.success) {
+          // Sort by date desc
+          const sorted = response.data.sort((a, b) => 
+            new Date(b.thoiGianGui) - new Date(a.thoiGianGui)
+          );
+          setNotifications(sorted);
+        }
+      } else if (activeTab === 'sent' && isAdmin()) {
+        const response = await thongBaoAPI.getSentNotifications();
+        if (response.success) {
+          const sorted = response.data.sort((a, b) => 
+            new Date(b.thoiGianGui) - new Date(a.thoiGianGui)
+          );
+          setSentNotifications(sorted);
+        }
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -25,7 +56,66 @@ const Notifications = () => {
     }
   };
 
-  if (loading) {
+  const handleMarkAsRead = async (notification) => {
+    if (activeTab === 'sent') return; // Cannot mark sent notifications as read
+    if (notification.daDoc) return;
+
+    try {
+      await thongBaoAPI.markAsRead(notification.maThongBao);
+      setNotifications(prev => 
+        prev.map(n => 
+          n.maThongBao === notification.maThongBao 
+            ? { ...n, daDoc: true, thoiGianDoc: new Date().toISOString() } 
+            : n
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const response = await thongBaoAPI.create(newNotification);
+      if (response.success) {
+        alert('Tạo thông báo thành công!');
+        setShowCreateModal(false);
+        setNewNotification({ tieuDe: '', noiDung: '', doKhan: 'Bình thường' });
+        if (activeTab === 'sent') {
+          fetchNotifications();
+        } else {
+          setActiveTab('sent');
+        }
+      }
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      alert('Có lỗi xảy ra khi tạo thông báo');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Filter logic for Resident view
+  const getFilteredNotifications = () => {
+    if (activeTab === 'sent') return sentNotifications;
+
+    return notifications.filter(n => {
+      // Filter by Category
+      const isUrgent = n.doKhan === 'Khẩn cấp' || n.doKhan === 'EMERGENCY';
+      if (categoryTab === 'urgent' && !isUrgent) return false;
+      if (categoryTab === 'normal' && isUrgent) return false;
+      
+      // Filter by Status
+      if (statusTab === 'unread' && n.daDoc) return false;
+      if (statusTab === 'read' && !n.daDoc) return false;
+      
+      return true;
+    });
+  };
+
+  if (loading && notifications.length === 0 && sentNotifications.length === 0) {
     return (
       <Layout>
         <div className="loading">Đang tải...</div>
@@ -33,24 +123,150 @@ const Notifications = () => {
     );
   }
 
+  const displayNotifications = getFilteredNotifications();
+
   return (
     <Layout>
       <div className="notifications-page">
-        <h1>Thông báo của tôi</h1>
+        <div className="page-header-flex">
+          <h1>Thông báo</h1>
+          {isAdmin() && (
+            <button 
+              className="btn-create-notification"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + Tạo thông báo mới
+            </button>
+          )}
+        </div>
 
-        {notifications.length === 0 ? (
+        <div className="tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'received' ? 'active' : ''}`}
+            onClick={() => setActiveTab('received')}
+          >
+            Hộp thư đến
+          </button>
+          {isAdmin() && (
+            <button 
+              className={`tab-btn ${activeTab === 'sent' ? 'active' : ''}`}
+              onClick={() => setActiveTab('sent')}
+            >
+              Đã gửi
+            </button>
+          )}
+        </div>
+
+        {activeTab === 'received' && (
+          <div className="sub-tabs-container">
+            {/* Category Tabs - Only for Residents */}
+            {!isAdmin() && (
+              <div className="category-tabs">
+                <button 
+                  className={`cat-btn ${categoryTab === 'normal' ? 'active' : ''}`}
+                  onClick={() => setCategoryTab('normal')}
+                >
+                  Thông báo chung
+                </button>
+                <button 
+                  className={`cat-btn ${categoryTab === 'urgent' ? 'active' : ''}`}
+                  onClick={() => setCategoryTab('urgent')}
+                >
+                  Khẩn cấp
+                </button>
+              </div>
+            )}
+
+            {/* Status Tabs - For both Admin and Residents */}
+            <div className="status-tabs">
+              <button 
+                className={`status-btn ${statusTab === 'unread' ? 'active' : ''}`}
+                onClick={() => setStatusTab('unread')}
+              >
+                Chưa đọc
+              </button>
+              <button 
+                className={`status-btn ${statusTab === 'read' ? 'active' : ''}`}
+                onClick={() => setStatusTab('read')}
+              >
+                Đã đọc
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showCreateModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>Tạo thông báo mới</h2>
+              <form onSubmit={handleCreateSubmit}>
+                <div className="form-group">
+                  <label>Tiêu đề</label>
+                  <input
+                    type="text"
+                    value={newNotification.tieuDe}
+                    onChange={(e) => setNewNotification({...newNotification, tieuDe: e.target.value})}
+                    required
+                    placeholder="Nhập tiêu đề thông báo"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Độ khẩn</label>
+                  <select
+                    value={newNotification.doKhan}
+                    onChange={(e) => setNewNotification({...newNotification, doKhan: e.target.value})}
+                  >
+                    <option value="Bình thường">Bình thường</option>
+                    <option value="Khẩn cấp">Khẩn cấp</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Nội dung</label>
+                  <textarea
+                    value={newNotification.noiDung}
+                    onChange={(e) => setNewNotification({...newNotification, noiDung: e.target.value})}
+                    required
+                    placeholder="Nhập nội dung thông báo"
+                    rows="4"
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button 
+                    type="button" 
+                    className="btn-cancel"
+                    onClick={() => setShowCreateModal(false)}
+                    disabled={creating}
+                  >
+                    Hủy
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-submit"
+                    disabled={creating}
+                  >
+                    {creating ? 'Đang gửi...' : 'Gửi thông báo'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {displayNotifications.length === 0 ? (
           <div className="no-data">Không có thông báo nào</div>
         ) : (
           <div className="notifications-list">
-            {notifications.map((notification) => (
+            {displayNotifications.map((notification) => (
               <div
-                key={notification.maNhanThongBao}
-                className={`notification-card ${notification.daDoc ? 'read' : 'unread'}`}
+                key={notification.maNhanThongBao || notification.maThongBao}
+                className={`notification-card ${activeTab === 'received' ? (notification.daDoc ? 'read' : 'unread') : ''}`}
+                onClick={() => handleMarkAsRead(notification)}
+                style={{ cursor: activeTab === 'received' && !notification.daDoc ? 'pointer' : 'default' }}
               >
                 <div className="notification-header">
                   <h3>{notification.tieuDe}</h3>
-                  <span className={`priority-badge ${notification.doKhan}`}>
-                    {notification.doKhan === 'EMERGENCY' ? 'Khẩn cấp' : 'Bình thường'}
+                  <span className={`priority-badge ${notification.doKhan === 'Khẩn cấp' ? 'emergency' : 'normal'}`}>
+                    {notification.doKhan}
                   </span>
                 </div>
 
@@ -62,7 +278,7 @@ const Notifications = () => {
                   <span className="notification-time">
                     {formatDateTime(notification.thoiGianGui)}
                   </span>
-                  {notification.daDoc && (
+                  {activeTab === 'received' && notification.daDoc && (
                     <span className="read-status">
                       Đã đọc lúc {formatDateTime(notification.thoiGianDoc)}
                     </span>

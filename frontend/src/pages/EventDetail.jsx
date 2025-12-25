@@ -38,6 +38,8 @@ const EventDetail = () => {
   // State for participants
   const [participants, setParticipants] = useState([]);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showAddParticipantForm, setShowAddParticipantForm] = useState(false);
+  const [newParticipantCCCD, setNewParticipantCCCD] = useState('');
 
   useEffect(() => {
     fetchEventDetails();
@@ -62,8 +64,10 @@ const EventDetail = () => {
       const response = await suKienAPI.getById(id);
       if (response.success) {
         setEvent(response.data);
-        // Check if user is registered (mock check)
-        setIsRegistered(false);
+        // Check if user is registered
+        if (!isAdmin()) {
+          checkRegistrationStatus();
+        }
       }
     } catch (error) {
       console.error('Error fetching event:', error);
@@ -71,6 +75,18 @@ const EventDetail = () => {
       navigate('/events');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkRegistrationStatus = async () => {
+    try {
+      const response = await dangKySuKienAPI.getMyRegistrations();
+      if (response.success) {
+        const isRegistered = response.data.some(reg => reg.maSuKien === parseInt(id) && reg.trangThai !== 'Hủy đăng ký');
+        setIsRegistered(isRegistered);
+      }
+    } catch (error) {
+      console.error('Error checking registration status:', error);
     }
   };
 
@@ -84,6 +100,28 @@ const EventDetail = () => {
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Không thể đăng ký');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleCancelRegistration = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy tham gia sự kiện này?')) return;
+    
+    setRegistering(true);
+    try {
+      // First get the registration ID
+      const response = await dangKySuKienAPI.getMyRegistrations();
+      if (response.success) {
+        const registration = response.data.find(reg => reg.maSuKien === parseInt(id) && reg.trangThai !== 'Hủy đăng ký');
+        if (registration) {
+          await dangKySuKienAPI.cancel(registration.maDangKy);
+          alert('Đã hủy tham gia sự kiện');
+          setIsRegistered(false);
+        }
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Không thể hủy đăng ký');
     } finally {
       setRegistering(false);
     }
@@ -148,10 +186,51 @@ const EventDetail = () => {
   };
 
   const handleLoadParticipants = async () => {
-    // Mock load participants - replace with real API call
-    // Removed mock data as requested
-    setParticipants([]);
-    setShowParticipants(true);
+    try {
+      const response = await dangKySuKienAPI.getEventRegistrations(id);
+      if (response.success) {
+        setParticipants(response.data);
+        setShowParticipants(true);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+      alert('Không thể tải danh sách tham gia');
+    }
+  };
+
+  const handleRemoveParticipant = async (registrationId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa người này khỏi sự kiện?')) return;
+    
+    try {
+      await dangKySuKienAPI.cancel(registrationId);
+      alert('Đã xóa người tham gia');
+      handleLoadParticipants(); // Reload list
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      alert('Không thể xóa người tham gia');
+    }
+  };
+
+  const handleAddParticipant = async (e) => {
+    e.preventDefault();
+    if (!newParticipantCCCD.trim()) return;
+
+    try {
+      const response = await dangKySuKienAPI.adminRegisterUser({
+        maSuKien: parseInt(id),
+        cccd: newParticipantCCCD.trim()
+      });
+      
+      if (response.success) {
+        alert('Thêm người tham gia thành công');
+        setNewParticipantCCCD('');
+        setShowAddParticipantForm(false);
+        handleLoadParticipants(); // Reload list
+      }
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      alert(error.response?.data?.message || 'Không thể thêm người tham gia. Kiểm tra lại CCCD.');
+    }
   };
 
   const handleRejectEvent = async () => {
@@ -249,16 +328,30 @@ const EventDetail = () => {
                 <p>{event.moTa}</p>
               </div>
             )}
-            {!isRegistered && !isAdmin() && (
-              <button
-                onClick={handleRegister}
-                disabled={registering}
-                className="btn-register-event"
-              >
-                {registering ? 'Đang đăng ký...' : 'Đăng ký tham gia'}
-              </button>
+            
+            {!isAdmin() && event.trangThai !== 'Đã kết thúc' && event.trangThai !== 'Hủy bỏ' && (
+              <div className="action-bar" style={{ marginTop: '20px' }}>
+                {isRegistered ? (
+                  <button 
+                    className="btn-register cancel" 
+                    onClick={handleCancelRegistration}
+                    disabled={registering}
+                    style={{ backgroundColor: '#ef4444', borderColor: '#ef4444', width: '100%' }}
+                  >
+                    {registering ? 'Đang xử lý...' : 'Hủy tham gia'}
+                  </button>
+                ) : (
+                  <button 
+                    className="btn-register" 
+                    onClick={handleRegister}
+                    disabled={registering}
+                    style={{ width: '100%' }}
+                  >
+                    {registering ? 'Đang xử lý...' : 'Đăng ký tham gia'}
+                  </button>
+                )}
+              </div>
             )}
-            {isRegistered && <div className="registered-badge">✓ Đã đăng ký</div>}
           </div>
 
           {/* Documents Section - Admin only */}
@@ -434,27 +527,6 @@ const EventDetail = () => {
                   </div>
                 </form>
               )}
-
-              {minutes ? (
-                <div className="minutes-content">
-                  <div className="minutes-section">
-                    <h3>Nội dung:</h3>
-                    <p>{minutes.noiDung}</p>
-                  </div>
-                  <div className="minutes-section">
-                    <h3>Kết luận:</h3>
-                    <p>{minutes.ketLuan}</p>
-                  </div>
-                  <div className="minutes-footer">
-                    <span>Người ghi nhận: <strong>{minutes.nguoiGhiNhan}</strong></span>
-                    <span>
-                      Thời gian: {formatDateTime(minutes.thoiGianGhiNhan)}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                !showMinutesForm && <p className="no-data">Chưa có biên bản</p>
-              )}
             </div>
           )}
 
@@ -463,12 +535,47 @@ const EventDetail = () => {
             <div className="detail-card">
               <div className="card-header">
                 <h2>Danh sách tham gia</h2>
-                {!showParticipants && (
-                  <button onClick={handleLoadParticipants} className="btn-load">
-                    Xem danh sách
-                  </button>
-                )}
+                <div className="header-actions">
+                  {!showParticipants && (
+                    <button onClick={handleLoadParticipants} className="btn-load">
+                      Xem danh sách
+                    </button>
+                  )}
+                  {showParticipants && (
+                    <button 
+                      onClick={() => setShowAddParticipantForm(!showAddParticipantForm)} 
+                      className="btn-add"
+                    >
+                      + Thêm người tham gia
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {showAddParticipantForm && (
+                <form onSubmit={handleAddParticipant} className="document-form">
+                  <div className="form-group">
+                    <label>Nhập CCCD người dân:</label>
+                    <input
+                      type="text"
+                      value={newParticipantCCCD}
+                      onChange={(e) => setNewParticipantCCCD(e.target.value)}
+                      placeholder="Ví dụ: 001234567890"
+                      required
+                    />
+                  </div>
+                  <div className="form-actions-inline">
+                    <button type="submit" className="btn-save">Thêm</button>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowAddParticipantForm(false)}
+                      className="btn-cancel-inline"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {showParticipants && (
                 <div className="participants-list">
@@ -479,17 +586,31 @@ const EventDetail = () => {
                       <thead>
                         <tr>
                           <th>Họ tên</th>
-                          <th>Địa chỉ</th>
+                          <th>CCCD</th>
                           <th>Trạng thái</th>
+                          <th>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
                         {participants.map((p) => (
-                          <tr key={p.maHo}>
-                            <td>{p.hoTen}</td>
-                            <td>{p.diaChiDayDu}</td>
+                          <tr key={p.maDangKy}>
+                            <td>{p.hoTenNguoiDangKy || 'N/A'}</td>
+                            <td>{p.cccdNguoiDangKy || 'N/A'}</td>
                             <td>
-                              <span className="status-badge">{p.trangThai}</span>
+                              <span className={`status-badge ${p.trangThai === 'Hủy đăng ký' ? 'cancelled' : 'active'}`}>
+                                {p.trangThai}
+                              </span>
+                            </td>
+                            <td>
+                              {p.trangThai !== 'Hủy đăng ký' && (
+                                <button 
+                                  className="btn-delete-doc"
+                                  style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                  onClick={() => handleRemoveParticipant(p.maDangKy)}
+                                >
+                                  Xóa
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

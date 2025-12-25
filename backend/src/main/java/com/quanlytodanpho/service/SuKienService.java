@@ -34,7 +34,8 @@ public class SuKienService {
     
     @Transactional
     public SuKienDTO createSuKien(CreateSuKienRequest request) {
-        if (request.getThoiGianKetThuc().isBefore(request.getThoiGianBatDau())) {
+        // Validate time: End time must be strictly after Start time
+        if (!request.getThoiGianKetThuc().isAfter(request.getThoiGianBatDau())) {
             throw new RuntimeException("Thời gian kết thúc phải sau thời gian bắt đầu");
         }
         
@@ -74,7 +75,7 @@ public class SuKienService {
         SuKien suKien = suKienRepository.findById(maSuKien)
                 .orElseThrow(() -> new RuntimeException("Sự kiện không tồn tại"));
         
-        if (request.getThoiGianKetThuc().isBefore(request.getThoiGianBatDau())) {
+        if (!request.getThoiGianKetThuc().isAfter(request.getThoiGianBatDau())) {
             throw new RuntimeException("Thời gian kết thúc phải sau thời gian bắt đầu");
         }
         
@@ -97,6 +98,30 @@ public class SuKienService {
                 .orElseThrow(() -> new RuntimeException("Sự kiện không tồn tại"));
         suKien.setTrangThai("Đã phê duyệt");
         suKienRepository.save(suKien);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SuKienDTO> getJoinedEvents() {
+        TaiKhoan currentUser = authService.getCurrentUser();
+        if (currentUser.getCccd() == null) {
+            return List.of();
+        }
+        return suKienRepository.findJoinedEvents(currentUser.getCccd()).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SuKienDTO> getNotJoinedEvents() {
+        TaiKhoan currentUser = authService.getCurrentUser();
+        if (currentUser.getCccd() == null) {
+            return suKienRepository.findAll().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        }
+        return suKienRepository.findNotJoinedEvents(currentUser.getCccd()).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
     
     @Transactional

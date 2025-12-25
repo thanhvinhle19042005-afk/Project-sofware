@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { suKienAPI } from '../api';
 import { formatDateTime } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
 import './Schedule.css';
 
 const Schedule = () => {
+  const { isAdmin } = useAuth();
   const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -16,7 +18,15 @@ const Schedule = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await suKienAPI.getAll();
+      let response;
+      if (isAdmin()) {
+        // Admin sees all events
+        response = await suKienAPI.getAll();
+      } else {
+        // Residents only see joined events
+        response = await suKienAPI.getJoined();
+      }
+      
       if (response.success) {
         setEvents(response.data);
       }
@@ -46,8 +56,20 @@ const Schedule = () => {
 
   // Current month days
   for (let i = 1; i <= days; i++) {
+    const currentDayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
+    currentDayDate.setHours(0, 0, 0, 0);
+
+    const dayEvents = events.filter(e => {
+      const startDate = new Date(e.thoiGianBatDau);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(e.thoiGianKetThuc);
+      endDate.setHours(0, 0, 0, 0);
+
+      return currentDayDate >= startDate && currentDayDate <= endDate;
+    });
+
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const dayEvents = events.filter(e => e.thoiGianBatDau.startsWith(dateStr));
     daysArray.push({ type: 'current', day: i, date: dateStr, events: dayEvents });
   }
 
@@ -57,10 +79,16 @@ const Schedule = () => {
 
   // Filter events for the selected date
   const selectedDateEvents = events.filter(e => {
-    const eventDate = new Date(e.thoiGianBatDau);
-    return eventDate.getDate() === selectedDate.getDate() &&
-           eventDate.getMonth() === selectedDate.getMonth() &&
-           eventDate.getFullYear() === selectedDate.getFullYear();
+    const checkDate = new Date(selectedDate);
+    checkDate.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(e.thoiGianBatDau);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(e.thoiGianKetThuc);
+    endDate.setHours(0, 0, 0, 0);
+
+    return checkDate >= startDate && checkDate <= endDate;
   }).sort((a, b) => new Date(a.thoiGianBatDau) - new Date(b.thoiGianBatDau));
 
   const formatTime = (isoString) => {

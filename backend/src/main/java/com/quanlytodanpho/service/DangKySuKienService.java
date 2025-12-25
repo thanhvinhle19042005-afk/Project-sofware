@@ -87,12 +87,77 @@ public class DangKySuKienService {
                 .orElseThrow(() -> new RuntimeException("Đăng ký không tồn tại"));
         
         TaiKhoan currentUser = authService.getCurrentUser();
-        if (!dangKy.getCccdNguoiDangKy().equals(currentUser.getCccd())) {
+        
+        // Check if user is owner or admin
+        boolean isOwner = dangKy.getCccdNguoiDangKy().equals(currentUser.getCccd());
+        boolean isAdmin = false;
+        
+        try {
+            // Simple check for admin role based on current implementation
+            // In a real app, we might check authorities
+            if (currentUser.getMaVaiTro() != null) {
+                // Assuming role ID 1 is Admin or checking role name via repository
+                // For now, let's assume if they can access the admin endpoint, they are admin
+                // But here we are in service layer.
+                // Let's check if the user has admin role
+                // This is a bit hacky without role repository access here or proper security context check
+                // Better to rely on PreAuthorize in controller for Admin actions
+                // But for mixed use (user cancels own, admin cancels any), we need logic here.
+                
+                // Let's assume we can check role name from DB or context
+                // For simplicity, if not owner, we check if they are admin
+                // If we can't easily check admin here, we might need to pass a flag or separate method
+                
+                // Let's use a separate method for Admin cancellation or update this one
+                // to allow if user has ROLE_ADMIN authority
+                
+                // Check authorities from SecurityContext
+                var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                if (authentication != null && authentication.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("Admin"))) {
+                    isAdmin = true;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        
+        if (!isOwner && !isAdmin) {
             throw new RuntimeException("Bạn không có quyền hủy đăng ký này");
         }
         
         dangKy.setTrangThai("Hủy đăng ký");
         dangKySuKienRepository.save(dangKy);
+    }
+
+    @Transactional
+    public DangKySuKienDTO adminRegisterUser(Integer maSuKien, String cccd) {
+        // Verify event exists
+        SuKien suKien = suKienRepository.findById(maSuKien)
+                .orElseThrow(() -> new RuntimeException("Sự kiện không tồn tại"));
+                
+        // Verify user exists
+        NguoiDan nguoiDan = nguoiDanRepository.findById(cccd)
+                .orElseThrow(() -> new RuntimeException("Người dân không tồn tại (CCCD: " + cccd + ")"));
+                
+        // Check if already registered
+        dangKySuKienRepository.findByMaSuKienAndCccdNguoiDangKy(maSuKien, cccd)
+                .ifPresent(existing -> {
+                    if (!existing.getTrangThai().equals("Hủy đăng ký")) {
+                        throw new RuntimeException("Người dân này đã đăng ký sự kiện");
+                    }
+                });
+                
+        DangKySuKien dangKy = new DangKySuKien();
+        dangKy.setMaSuKien(maSuKien);
+        dangKy.setCccdNguoiDangKy(cccd);
+        dangKy.setMaGiaDinh(nguoiDan.getMaGiaDinh());
+        dangKy.setThoiGianDangKy(LocalDateTime.now());
+        dangKy.setTrangThai("Đã đăng ký");
+        dangKy.setGhiChu("Đăng ký bởi Admin");
+        
+        dangKy = dangKySuKienRepository.save(dangKy);
+        return convertToDTO(dangKy);
     }
     
     @Transactional(readOnly = true)

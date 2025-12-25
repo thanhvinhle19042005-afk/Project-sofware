@@ -13,6 +13,7 @@ import java.util.List;
 public interface ThongBaoRepository extends JpaRepository<ThongBao, Integer> {
     List<ThongBao> findByMaSuKien(Integer maSuKien);
     List<ThongBao> findByTrangThai(String trangThai);
+    List<ThongBao> findByNguoiGuiId(Integer nguoiGuiId);
     
     @Query("SELECT t FROM ThongBao t WHERE t.thoiGianGui >= :startDate ORDER BY t.thoiGianGui DESC")
     List<ThongBao> findRecentNotifications(@Param("startDate") LocalDateTime startDate);

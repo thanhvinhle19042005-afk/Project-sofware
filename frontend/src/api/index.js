@@ -41,6 +41,16 @@ export const suKienAPI = {
     return response.data;
   },
 
+  getJoined: async () => {
+    const response = await api.get('/events/joined');
+    return response.data;
+  },
+
+  getNotJoined: async () => {
+    const response = await api.get('/events/not-joined');
+    return response.data;
+  },
+
   getById: async (id) => {
     const response = await api.get(`/events/${id}`);
     return response.data;
@@ -92,6 +102,11 @@ export const dangKySuKienAPI = {
     const response = await api.get(`/registrations/event/${eventId}`);
     return response.data;
   },
+
+  adminRegisterUser: async (data) => {
+    const response = await api.post('/registrations/admin/register', data);
+    return response.data;
+  },
 };
 
 export const thongBaoAPI = {
@@ -102,6 +117,16 @@ export const thongBaoAPI = {
 
   getMyNotifications: async () => {
     const response = await api.get('/notifications/my-notifications');
+    return response.data;
+  },
+
+  getSentNotifications: async () => {
+    const response = await api.get('/notifications/sent');
+    return response.data;
+  },
+
+  markAsRead: async (id) => {
+    const response = await api.patch(`/notifications/${id}/read`);
     return response.data;
   },
 };

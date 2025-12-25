@@ -22,4 +22,10 @@ public interface SuKienRepository extends JpaRepository<SuKien, Integer> {
     
     @Query("SELECT s FROM SuKien s WHERE s.thoiGianBatDau BETWEEN :start AND :end ORDER BY s.thoiGianBatDau ASC")
     List<SuKien> findEventsByDateRange(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT s FROM SuKien s JOIN DangKySuKien d ON s.maSuKien = d.maSuKien WHERE d.cccdNguoiDangKy = :cccd AND d.trangThai != 'Hủy đăng ký' ORDER BY s.thoiGianBatDau ASC")
+    List<SuKien> findJoinedEvents(@Param("cccd") String cccd);
+
+    @Query("SELECT s FROM SuKien s WHERE s.maSuKien NOT IN (SELECT d.maSuKien FROM DangKySuKien d WHERE d.cccdNguoiDangKy = :cccd AND d.trangThai != 'Hủy đăng ký') ORDER BY s.thoiGianBatDau ASC")
+    List<SuKien> findNotJoinedEvents(@Param("cccd") String cccd);
 }

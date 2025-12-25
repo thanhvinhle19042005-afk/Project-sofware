@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,30 +46,55 @@ public class NotificationAutoService {
                     suKien.getThoiGianBatDau(),
                     suKien.getDiaDiem()
             ));
-            thongBao.setDoKhan(suKien.getLoaiSuKien().equals("EMERGENCY") ? "Khẩn cấp" : "Bình thường");
+            
+            // Check if EMERGENCY
+            // Check for both English and Vietnamese keywords to be safe
+            if ("EMERGENCY".equalsIgnoreCase(suKien.getLoaiSuKien()) || "Khẩn cấp".equalsIgnoreCase(suKien.getLoaiSuKien())) {
+                thongBao.setDoKhan("Khẩn cấp");
+                thongBao.setTieuDe("KHẨN CẤP: " + suKien.getTenSuKien());
+                thongBao.setNoiDung(String.format(
+                    "THÔNG BÁO KHẨN: Sự kiện \"%s\" yêu cầu sự chú ý ngay lập tức. Thời gian: %s. Địa điểm: %s.",
+                    suKien.getTenSuKien(),
+                    suKien.getThoiGianBatDau(),
+                    suKien.getDiaDiem()
+                ));
+            } else {
+                thongBao.setDoKhan("Bình thường");
+            }
+            
             thongBao.setThoiGianGui(LocalDateTime.now());
             thongBao.setMaSuKien(suKien.getMaSuKien());
 
             ThongBao savedNotification = thongBaoRepository.save(thongBao);
 
             // Lấy MaVaiTro của Admin (giả sử là 1)
-            VaiTro adminRole = vaiTroRepository.findByTenVaiTro("ROLE_ADMIN").orElse(null);
+            VaiTro adminRole = vaiTroRepository.findByTenVaiTro("Admin").orElse(null);
             Integer adminRoleId = (adminRole != null) ? adminRole.getMaVaiTro() : 1;
 
             // Gửi đến tất cả người dùng (trừ Admin)
             List<TaiKhoan> allUsers = taiKhoanRepository.findAll();
-            for (TaiKhoan user : allUsers) {
-                if (user.getMaVaiTro().equals(adminRoleId)) continue;
-                if (user.getCccd() == null) continue; // Skip users without CCCD
+            
+            final Integer maThongBao = savedNotification.getMaThongBao();
+            
+            List<NguoiNhanThongBao> recipients = allUsers.stream()
+                    .filter(user -> !user.getMaVaiTro().equals(adminRoleId))
+                    .map(TaiKhoan::getCccd)
+                    .filter(cccd -> cccd != null && !cccd.trim().isEmpty())
+                    .distinct()
+                    .map(cccd -> {
+                        NguoiNhanThongBao nguoiNhan = new NguoiNhanThongBao();
+                        nguoiNhan.setMaThongBao(maThongBao);
+                        nguoiNhan.setCccdNguoiNhan(cccd);
+                        nguoiNhan.setDaDoc(false);
+                        return nguoiNhan;
+                    })
+                    .collect(Collectors.toList());
 
-                NguoiNhanThongBao nguoiNhan = new NguoiNhanThongBao();
-                nguoiNhan.setMaThongBao(savedNotification.getMaThongBao());
-                nguoiNhan.setCccdNguoiNhan(user.getCccd());
-                nguoiNhan.setDaDoc(false);
-                nguoiNhanRepository.save(nguoiNhan);
+            if (!recipients.isEmpty()) {
+                nguoiNhanRepository.saveAll(recipients);
             }
 
-            log.info("Event notification sent successfully");
+            log.info("Event notification sent successfully to {} recipients", recipients.size());
         } catch (Exception e) {
             log.error("Failed to send event notification", e);
         }

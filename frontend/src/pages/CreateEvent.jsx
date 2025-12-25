@@ -32,6 +32,16 @@ const CreateEvent = () => {
     setError('');
     setLoading(true);
 
+    // Validate dates
+    const startDate = new Date(formData.thoiGianBatDau);
+    const endDate = new Date(formData.thoiGianKetThuc);
+
+    if (endDate <= startDate) {
+      setError('Thời gian kết thúc phải sau thời gian bắt đầu');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Format datetime fields to include seconds for backend
       const dataToSend = {
