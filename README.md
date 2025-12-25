@@ -68,7 +68,7 @@ Project-sofware-Son/
 cd backend
 
 # Development (H2 Database)
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 
 # Production (MySQL)
 mvn spring-boot:run -Dspring-boot.run.profiles=prod
