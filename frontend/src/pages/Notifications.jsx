@@ -10,6 +10,11 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [sentNotifications, setSentNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState('received'); // 'received' or 'sent'
+  
+  // Resident tabs
+  const [categoryTab, setCategoryTab] = useState('normal'); // 'normal' or 'urgent'
+  const [statusTab, setStatusTab] = useState('unread'); // 'unread' or 'read'
+
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -29,12 +34,19 @@ const Notifications = () => {
       if (activeTab === 'received') {
         const response = await thongBaoAPI.getMyNotifications();
         if (response.success) {
-          setNotifications(response.data);
+          // Sort by date desc
+          const sorted = response.data.sort((a, b) => 
+            new Date(b.thoiGianGui) - new Date(a.thoiGianGui)
+          );
+          setNotifications(sorted);
         }
       } else if (activeTab === 'sent' && isAdmin()) {
         const response = await thongBaoAPI.getSentNotifications();
         if (response.success) {
-          setSentNotifications(response.data);
+          const sorted = response.data.sort((a, b) => 
+            new Date(b.thoiGianGui) - new Date(a.thoiGianGui)
+          );
+          setSentNotifications(sorted);
         }
       }
     } catch (error) {
@@ -85,6 +97,24 @@ const Notifications = () => {
     }
   };
 
+  // Filter logic for Resident view
+  const getFilteredNotifications = () => {
+    if (activeTab === 'sent') return sentNotifications;
+
+    return notifications.filter(n => {
+      // Filter by Category
+      const isUrgent = n.doKhan === 'Khẩn cấp' || n.doKhan === 'EMERGENCY';
+      if (categoryTab === 'urgent' && !isUrgent) return false;
+      if (categoryTab === 'normal' && isUrgent) return false;
+      
+      // Filter by Status
+      if (statusTab === 'unread' && n.daDoc) return false;
+      if (statusTab === 'read' && !n.daDoc) return false;
+      
+      return true;
+    });
+  };
+
   if (loading && notifications.length === 0 && sentNotifications.length === 0) {
     return (
       <Layout>
@@ -93,7 +123,7 @@ const Notifications = () => {
     );
   }
 
-  const displayNotifications = activeTab === 'received' ? notifications : sentNotifications;
+  const displayNotifications = getFilteredNotifications();
 
   return (
     <Layout>
@@ -110,20 +140,58 @@ const Notifications = () => {
           )}
         </div>
 
-        {isAdmin() && (
-          <div className="tabs">
-            <button 
-              className={`tab-btn ${activeTab === 'received' ? 'active' : ''}`}
-              onClick={() => setActiveTab('received')}
-            >
-              Hộp thư đến
-            </button>
+        <div className="tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'received' ? 'active' : ''}`}
+            onClick={() => setActiveTab('received')}
+          >
+            Hộp thư đến
+          </button>
+          {isAdmin() && (
             <button 
               className={`tab-btn ${activeTab === 'sent' ? 'active' : ''}`}
               onClick={() => setActiveTab('sent')}
             >
               Đã gửi
             </button>
+          )}
+        </div>
+
+        {activeTab === 'received' && (
+          <div className="sub-tabs-container">
+            {/* Category Tabs - Only for Residents */}
+            {!isAdmin() && (
+              <div className="category-tabs">
+                <button 
+                  className={`cat-btn ${categoryTab === 'normal' ? 'active' : ''}`}
+                  onClick={() => setCategoryTab('normal')}
+                >
+                  Thông báo chung
+                </button>
+                <button 
+                  className={`cat-btn ${categoryTab === 'urgent' ? 'active' : ''}`}
+                  onClick={() => setCategoryTab('urgent')}
+                >
+                  Khẩn cấp
+                </button>
+              </div>
+            )}
+
+            {/* Status Tabs - For both Admin and Residents */}
+            <div className="status-tabs">
+              <button 
+                className={`status-btn ${statusTab === 'unread' ? 'active' : ''}`}
+                onClick={() => setStatusTab('unread')}
+              >
+                Chưa đọc
+              </button>
+              <button 
+                className={`status-btn ${statusTab === 'read' ? 'active' : ''}`}
+                onClick={() => setStatusTab('read')}
+              >
+                Đã đọc
+              </button>
+            </div>
           </div>
         )}
 

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -72,18 +73,28 @@ public class NotificationAutoService {
 
             // Gửi đến tất cả người dùng (trừ Admin)
             List<TaiKhoan> allUsers = taiKhoanRepository.findAll();
-            for (TaiKhoan user : allUsers) {
-                if (user.getMaVaiTro().equals(adminRoleId)) continue;
-                if (user.getCccd() == null) continue; // Skip users without CCCD
+            
+            final Integer maThongBao = savedNotification.getMaThongBao();
+            
+            List<NguoiNhanThongBao> recipients = allUsers.stream()
+                    .filter(user -> !user.getMaVaiTro().equals(adminRoleId))
+                    .map(TaiKhoan::getCccd)
+                    .filter(cccd -> cccd != null && !cccd.trim().isEmpty())
+                    .distinct()
+                    .map(cccd -> {
+                        NguoiNhanThongBao nguoiNhan = new NguoiNhanThongBao();
+                        nguoiNhan.setMaThongBao(maThongBao);
+                        nguoiNhan.setCccdNguoiNhan(cccd);
+                        nguoiNhan.setDaDoc(false);
+                        return nguoiNhan;
+                    })
+                    .collect(Collectors.toList());
 
-                NguoiNhanThongBao nguoiNhan = new NguoiNhanThongBao();
-                nguoiNhan.setMaThongBao(savedNotification.getMaThongBao());
-                nguoiNhan.setCccdNguoiNhan(user.getCccd());
-                nguoiNhan.setDaDoc(false);
-                nguoiNhanRepository.save(nguoiNhan);
+            if (!recipients.isEmpty()) {
+                nguoiNhanRepository.saveAll(recipients);
             }
 
-            log.info("Event notification sent successfully");
+            log.info("Event notification sent successfully to {} recipients", recipients.size());
         } catch (Exception e) {
             log.error("Failed to send event notification", e);
         }

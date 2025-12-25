@@ -18,6 +18,7 @@ public class ThongBaoService {
     private final ThongBaoRepository thongBaoRepository;
     private final NguoiNhanThongBaoRepository nguoiNhanThongBaoRepository;
     private final GiaDinhRepository giaDinhRepository;
+    private final TaiKhoanRepository taiKhoanRepository;
     private final SuKienRepository suKienRepository;
     private final LoaiThongBaoRepository loaiThongBaoRepository;
     private final AuthService authService;
@@ -41,17 +42,9 @@ public class ThongBaoService {
         
         thongBao = thongBaoRepository.save(thongBao);
         
-        // Send to all household heads
-        List<GiaDinh> giaDinhs = giaDinhRepository.findAll();
-        for (GiaDinh giaDinh : giaDinhs) {
-            if (giaDinh.getCccdChuHo() != null) {
-                NguoiNhanThongBao nguoiNhan = new NguoiNhanThongBao();
-                nguoiNhan.setMaThongBao(thongBao.getMaThongBao());
-                nguoiNhan.setCccdNguoiNhan(giaDinh.getCccdChuHo());
-                nguoiNhan.setDaDoc(false);
-                nguoiNhanThongBaoRepository.save(nguoiNhan);
-            }
-        }
+        // No need to create NguoiNhanThongBao for everyone anymore.
+        // We will use a "Pull" model where users fetch all notifications
+        // and we only track "Read" status in NguoiNhanThongBao.
         
         return convertToDTO(thongBao, null);
     }
@@ -65,18 +58,24 @@ public class ThongBaoService {
             return List.of();
         }
         
-        List<NguoiNhanThongBao> nguoiNhans = nguoiNhanThongBaoRepository.findByCccdNguoiNhan(cccd);
+        // 1. Get all notifications (Broadcast model)
+        List<ThongBao> allThongBaos = thongBaoRepository.findAll();
         
-        return nguoiNhans.stream()
-                .map(nguoiNhan -> {
-                    ThongBao thongBao = thongBaoRepository.findById(nguoiNhan.getMaThongBao())
+        // 2. Get read status for current user
+        List<NguoiNhanThongBao> myReadStatus = nguoiNhanThongBaoRepository.findByCccdNguoiNhan(cccd);
+        
+        // 3. Map to DTO
+        return allThongBaos.stream()
+                .map(thongBao -> {
+                    // Find if user has read this notification
+                    NguoiNhanThongBao status = myReadStatus.stream()
+                            .filter(n -> n.getMaThongBao().equals(thongBao.getMaThongBao()))
+                            .findFirst()
                             .orElse(null);
-                    if (thongBao != null) {
-                        return convertToDTO(thongBao, nguoiNhan);
-                    }
-                    return null;
+                            
+                    return convertToDTO(thongBao, status);
                 })
-                .filter(dto -> dto != null)
+                .sorted((a, b) -> b.getThoiGianGui().compareTo(a.getThoiGianGui()))
                 .collect(Collectors.toList());
     }
     
@@ -89,16 +88,29 @@ public class ThongBaoService {
             throw new RuntimeException("Tài khoản chưa liên kết với người dân");
         }
         
-        List<NguoiNhanThongBao> nguoiNhans = nguoiNhanThongBaoRepository.findByMaThongBao(maThongBao);
+        // Check if already marked as read
+        List<NguoiNhanThongBao> existing = nguoiNhanThongBaoRepository.findByMaThongBao(maThongBao);
+        boolean alreadyRead = existing.stream()
+                .anyMatch(n -> n.getCccdNguoiNhan().equals(cccd) && Boolean.TRUE.equals(n.getDaDoc()));
+                
+        if (alreadyRead) {
+            return;
+        }
         
-        nguoiNhans.stream()
-                .filter(nn -> nn.getCccdNguoiNhan().equals(cccd))
+        // Create or update read status
+        NguoiNhanThongBao nguoiNhan = existing.stream()
+                .filter(n -> n.getCccdNguoiNhan().equals(cccd))
                 .findFirst()
-                .ifPresent(nguoiNhan -> {
-                    nguoiNhan.setDaDoc(true);
-                    nguoiNhan.setThoiGianDoc(LocalDateTime.now());
-                    nguoiNhanThongBaoRepository.save(nguoiNhan);
-                });
+                .orElse(new NguoiNhanThongBao());
+                
+        if (nguoiNhan.getMaNhanThongBao() == null) {
+            nguoiNhan.setMaThongBao(maThongBao);
+            nguoiNhan.setCccdNguoiNhan(cccd);
+        }
+        
+        nguoiNhan.setDaDoc(true);
+        nguoiNhan.setThoiGianDoc(LocalDateTime.now());
+        nguoiNhanThongBaoRepository.save(nguoiNhan);
     }
 
     @Transactional(readOnly = true)

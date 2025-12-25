@@ -43,3 +43,8 @@ build/
 ### OS ###
 .DS_Store
 Thumbs.db
+
+### Database Data ###
+*.lock.db
+*.mv.db
+*.trace.db
