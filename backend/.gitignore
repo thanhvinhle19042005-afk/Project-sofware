@@ -48,3 +48,4 @@ Thumbs.db
 *.lock.db
 *.mv.db
 *.trace.db
+*.db

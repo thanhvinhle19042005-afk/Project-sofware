@@ -1,11 +1,14 @@
 package com.quanlytodanpho.controller;
 
+import com.quanlytodanpho.constant.NotificationConstants;
 import com.quanlytodanpho.dto.ApiResponse;
 import com.quanlytodanpho.entity.GiaDinh;
+import com.quanlytodanpho.entity.NguoiDan;
 import com.quanlytodanpho.exception.ResourceNotFoundException;
 import com.quanlytodanpho.repository.BatDongSanRepository;
 import com.quanlytodanpho.repository.GiaDinhRepository;
 import com.quanlytodanpho.repository.NguoiDanRepository;
+import com.quanlytodanpho.service.ThongBaoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +26,7 @@ public class GiaDinhController {
     private final GiaDinhRepository giaDinhRepository;
     private final NguoiDanRepository nguoiDanRepository;
     private final BatDongSanRepository batDongSanRepository;
+    private final ThongBaoService thongBaoService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<GiaDinh>>> getAllGiaDinh() {
@@ -95,6 +99,26 @@ public class GiaDinhController {
     public ResponseEntity<ApiResponse<Void>> deleteGiaDinh(@PathVariable String maGiaDinh) {
         GiaDinh giaDinh = giaDinhRepository.findById(maGiaDinh)
                 .orElseThrow(() -> new ResourceNotFoundException("GiaDinh", "maGiaDinh", maGiaDinh));
+        
+        // Notify all members before deleting
+        List<NguoiDan> members = nguoiDanRepository.findByMaGiaDinh(maGiaDinh);
+        for (NguoiDan member : members) {
+            try {
+                thongBaoService.createPersonalNotification(
+                    NotificationConstants.TITLE_FAMILY_DISSOLVED,
+                    String.format(NotificationConstants.CONTENT_FAMILY_DISSOLVED, maGiaDinh),
+                    member.getCccd(),
+                    NotificationConstants.URGENCY_URGENT
+                );
+                
+                // Update member to remove family link
+                member.setMaGiaDinh(null);
+                nguoiDanRepository.save(member);
+            } catch (Exception e) {
+                System.err.println("Failed to process member " + member.getCccd() + " during family deletion: " + e.getMessage());
+            }
+        }
+        
         giaDinhRepository.delete(giaDinh);
         return ResponseEntity.ok(new ApiResponse<>(true, "Xóa gia đình thành công", null));
     }

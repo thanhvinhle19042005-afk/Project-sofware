@@ -90,6 +90,36 @@
   color: #ffffff !important;
 }
 
+.notification-badge {
+  position: absolute;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-badge.open {
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+}
+
+.notification-badge.closed {
+  top: 5px;
+  right: 5px;
+  width: 16px;
+  height: 16px;
+  font-size: 0.6rem;
+  padding: 0;
+}
+
 .sidebar.closed .sidebar-link {
   font-size: 0.75rem;
   padding: 0.5rem;

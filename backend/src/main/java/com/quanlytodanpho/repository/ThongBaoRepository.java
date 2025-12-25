@@ -17,4 +17,10 @@ public interface ThongBaoRepository extends JpaRepository<ThongBao, Integer> {
     
     @Query("SELECT t FROM ThongBao t WHERE t.thoiGianGui >= :startDate ORDER BY t.thoiGianGui DESC")
     List<ThongBao> findRecentNotifications(@Param("startDate") LocalDateTime startDate);
+
+    List<ThongBao> findByScope(String scope);
+    boolean existsByScopeAndMaSuKienAndTieuDe(String scope, Integer maSuKien, String tieuDe);
+
+    @Query("SELECT COUNT(n) > 0 FROM NguoiNhanThongBao n, ThongBao t WHERE n.maThongBao = t.maThongBao AND n.cccdNguoiNhan = :cccd AND t.maSuKien = :maSuKien AND t.tieuDe LIKE CONCAT(:titlePrefix, '%')")
+    boolean hasSentReminder(@Param("cccd") String cccd, @Param("maSuKien") Integer maSuKien, @Param("titlePrefix") String titlePrefix);
 }

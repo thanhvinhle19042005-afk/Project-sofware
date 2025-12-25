@@ -55,9 +55,23 @@ const NguoiDan = () => {
     }
   };
 
-  const handleEdit = (citizen) => {
+  const handleEdit = async (citizen) => {
     setEditingCitizen(citizen);
-    setIsChuHo(citizen.isChuHo || false);
+    
+    // Check if citizen is household head
+    let isHead = false;
+    if (citizen.maGiaDinh) {
+      try {
+        const familyRes = await giaDinhAPI.getById(citizen.maGiaDinh);
+        if (familyRes.data && familyRes.data.cccdChuHo === citizen.cccd) {
+          isHead = true;
+        }
+      } catch (err) {
+        console.error("Error checking family head status", err);
+      }
+    }
+    
+    setIsChuHo(isHead);
     setFormData({
       cccd: citizen.cccd,
       hoTen: citizen.hoTen,

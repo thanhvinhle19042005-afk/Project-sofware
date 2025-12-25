@@ -39,6 +39,7 @@ public class ThongBaoService {
         thongBao.setDoKhan(doKhan != null ? doKhan : "Bình thường");
         thongBao.setThoiGianGui(LocalDateTime.now());
         thongBao.setTrangThai("Đã gửi");
+        thongBao.setScope("GLOBAL");
         
         thongBao = thongBaoRepository.save(thongBao);
         
@@ -47,6 +48,38 @@ public class ThongBaoService {
         // and we only track "Read" status in NguoiNhanThongBao.
         
         return convertToDTO(thongBao, null);
+    }
+
+    @Transactional
+    public void createPersonalNotification(String tieuDe, String noiDung, String cccd, String doKhan) {
+        TaiKhoan currentUser = null;
+        try {
+            currentUser = authService.getCurrentUser();
+        } catch (Exception e) {
+            // System notification
+        }
+        
+        LoaiThongBao loaiThongBao = loaiThongBaoRepository.findByTenLoai("Passive")
+                .orElseThrow(() -> new RuntimeException("Loại thông báo không tồn tại"));
+        
+        ThongBao thongBao = new ThongBao();
+        thongBao.setTieuDe(tieuDe);
+        thongBao.setNoiDung(noiDung);
+        thongBao.setMaLoai(loaiThongBao.getMaLoai());
+        thongBao.setNguoiGuiId(currentUser != null ? currentUser.getMaTaiKhoan() : null);
+        thongBao.setDoKhan(doKhan != null ? doKhan : "Bình thường");
+        thongBao.setThoiGianGui(LocalDateTime.now());
+        thongBao.setTrangThai("Đã gửi");
+        thongBao.setScope("PERSONAL");
+        
+        thongBao = thongBaoRepository.save(thongBao);
+        
+        // Create recipient record immediately
+        NguoiNhanThongBao recipient = new NguoiNhanThongBao();
+        recipient.setMaThongBao(thongBao.getMaThongBao());
+        recipient.setCccdNguoiNhan(cccd);
+        recipient.setDaDoc(false);
+        nguoiNhanThongBaoRepository.save(recipient);
     }
     
     @Transactional(readOnly = true)
@@ -58,13 +91,30 @@ public class ThongBaoService {
             return List.of();
         }
         
-        // 1. Get all notifications (Broadcast model)
-        List<ThongBao> allThongBaos = thongBaoRepository.findAll();
+        // 1. Get GLOBAL notifications
+        List<ThongBao> globalThongBaos = thongBaoRepository.findByScope("GLOBAL");
+        if (globalThongBaos == null) globalThongBaos = new java.util.ArrayList<>();
         
         // 2. Get read status for current user
         List<NguoiNhanThongBao> myReadStatus = nguoiNhanThongBaoRepository.findByCccdNguoiNhan(cccd);
         
-        // 3. Map to DTO
+        // 3. Get PERSONAL notifications
+        List<Integer> myNotificationIds = myReadStatus.stream()
+                .map(NguoiNhanThongBao::getMaThongBao)
+                .collect(Collectors.toList());
+        
+        List<ThongBao> personalThongBaos = new java.util.ArrayList<>();
+        if (!myNotificationIds.isEmpty()) {
+             personalThongBaos = thongBaoRepository.findAllById(myNotificationIds).stream()
+                .filter(tb -> "PERSONAL".equals(tb.getScope()))
+                .collect(Collectors.toList());
+        }
+
+        // 4. Combine
+        List<ThongBao> allThongBaos = new java.util.ArrayList<>(globalThongBaos);
+        allThongBaos.addAll(personalThongBaos);
+        
+        // 5. Map to DTO
         return allThongBaos.stream()
                 .map(thongBao -> {
                     // Find if user has read this notification

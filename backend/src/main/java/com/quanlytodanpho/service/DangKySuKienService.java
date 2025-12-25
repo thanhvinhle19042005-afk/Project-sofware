@@ -1,5 +1,6 @@
 package com.quanlytodanpho.service;
 
+import com.quanlytodanpho.constant.NotificationConstants;
 import com.quanlytodanpho.dto.DangKySuKienDTO;
 import com.quanlytodanpho.entity.DangKySuKien;
 import com.quanlytodanpho.entity.NguoiDan;
@@ -25,6 +26,7 @@ public class DangKySuKienService {
     private final SuKienRepository suKienRepository;
     private final NguoiDanRepository nguoiDanRepository;
     private final AuthService authService;
+    private final ThongBaoService thongBaoService;
     
     @Transactional
     public DangKySuKienDTO registerForEvent(Integer maSuKien, String ghiChu) {
@@ -128,6 +130,22 @@ public class DangKySuKienService {
         
         dangKy.setTrangThai("Hủy đăng ký");
         dangKySuKienRepository.save(dangKy);
+        
+        // Notify if admin removed user
+        if (isAdmin && !isOwner) {
+            try {
+                suKienRepository.findById(dangKy.getMaSuKien()).ifPresent(suKien -> {
+                    thongBaoService.createPersonalNotification(
+                        NotificationConstants.TITLE_EVENT_REGISTRATION_CANCELLED,
+                        String.format(NotificationConstants.CONTENT_EVENT_REGISTRATION_CANCELLED, suKien.getTenSuKien()),
+                        dangKy.getCccdNguoiDangKy(),
+                        NotificationConstants.URGENCY_NORMAL
+                    );
+                });
+            } catch (Exception e) {
+                System.err.println("Failed to send notification: " + e.getMessage());
+            }
+        }
     }
 
     @Transactional

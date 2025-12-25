@@ -51,6 +51,9 @@ public class ThongBao {
     
     @Column(name = "TrangThai", length = 20)
     private String trangThai = "Đã gửi";
+
+    @Column(name = "Scope", length = 20)
+    private String scope = "GLOBAL"; // GLOBAL or PERSONAL
     
     @CreatedDate
     @Column(name = "NgayTao", nullable = false, updatable = false)

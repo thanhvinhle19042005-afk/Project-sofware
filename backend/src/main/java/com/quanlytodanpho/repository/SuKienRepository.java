@@ -16,6 +16,9 @@ public interface SuKienRepository extends JpaRepository<SuKien, Integer> {
     
     @Query("SELECT s FROM SuKien s WHERE s.thoiGianBatDau >= :startDate ORDER BY s.thoiGianBatDau ASC")
     List<SuKien> findUpcomingEvents(@Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT s FROM SuKien s WHERE s.thoiGianBatDau BETWEEN :start AND :end AND s.trangThai = 'Đã phê duyệt'")
+    List<SuKien> findEventsStartingBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
     
     @Query("SELECT s FROM SuKien s WHERE s.trangThai IN :statuses AND s.thoiGianBatDau >= :now ORDER BY s.thoiGianBatDau ASC")
     List<SuKien> findActiveEvents(@Param("statuses") List<String> statuses, @Param("now") LocalDateTime now);

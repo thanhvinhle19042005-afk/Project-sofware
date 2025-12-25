@@ -1,9 +1,11 @@
 package com.quanlytodanpho.service;
 
+import com.quanlytodanpho.constant.NotificationConstants;
 import com.quanlytodanpho.entity.DangKySuKien;
 import com.quanlytodanpho.entity.SuKien;
 import com.quanlytodanpho.repository.DangKySuKienRepository;
 import com.quanlytodanpho.repository.SuKienRepository;
+import com.quanlytodanpho.repository.ThongBaoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,54 +20,40 @@ public class NotificationScheduler {
 
     private final SuKienRepository suKienRepository;
     private final DangKySuKienRepository dangKySuKienRepository;
+    private final ThongBaoRepository thongBaoRepository;
     private final ThongBaoService thongBaoService;
 
-    @Scheduled(fixedRate = 60000) // Run every minute
+    @Scheduled(fixedRate = 3600000) // Run every hour
     @Transactional
     public void checkUpcomingEvents() {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourLater = now.plusHours(1);
-        LocalDateTime oneHourFiveMinutesLater = oneHourLater.plusMinutes(5);
-
-        // Find events starting in roughly 1 hour that haven't been notified
-        List<SuKien> upcomingEvents = suKienRepository.findUpcomingEvents(now);
-
-        for (SuKien suKien : upcomingEvents) {
-            if (Boolean.TRUE.equals(suKien.getDaThongBaoNhacNho())) {
-                continue;
-            }
-
-            // Check if event starts within [1h, 1h + 5m] window
-            // Or simpler: if start time is before oneHourFiveMinutesLater and after oneHourLater (approx)
-            // Actually, let's just check if it's within the next 65 minutes and hasn't been notified.
-            // But we want specifically "1 hour before".
+        LocalDateTime next24h = now.plusHours(24);
+        
+        // Find events starting in the next 24 hours
+        List<SuKien> upcomingEvents = suKienRepository.findEventsStartingBetween(now, next24h);
+        
+        for (SuKien event : upcomingEvents) {
+            List<DangKySuKien> participants = dangKySuKienRepository.findByMaSuKien(event.getMaSuKien());
             
-            if (suKien.getThoiGianBatDau().isAfter(now) && 
-                suKien.getThoiGianBatDau().isBefore(oneHourFiveMinutesLater) &&
-                suKien.getThoiGianBatDau().isAfter(now.plusMinutes(55))) {
+            for (DangKySuKien p : participants) {
+                // Only notify active registrations
+                if (!"Đã đăng ký".equals(p.getTrangThai())) continue;
                 
-                // Send notification
-                String title = "Nhắc nhở sự kiện sắp diễn ra";
-                String content = "Sự kiện '" + suKien.getTenSuKien() + "' sẽ diễn ra vào lúc " + 
-                                 suKien.getThoiGianBatDau().toString().replace("T", " ") + 
-                                 ". Địa điểm: " + suKien.getDiaDiem();
+                // Check if reminder already sent
+                boolean sent = thongBaoRepository.hasSentReminder(p.getCccdNguoiDangKy(), event.getMaSuKien(), NotificationConstants.TITLE_EVENT_REMINDER);
                 
-                // Create notification (this sends to all household heads by default in current impl, 
-                // but we might want to target specific registered users?
-                // The requirement says "notify 1h before event".
-                // If it's a public event, maybe everyone? If registered only?
-                // "đối với cư dân: thông báo khi chuẩn bị đến giờ sự kiện" -> implies relevant users.
-                // But ThongBaoService.createNotification currently sends to ALL households.
-                // Let's stick to that for now as per existing logic, or refine if needed.
-                // Ideally we should send only to registered users.
-                
-                // Let's use createNotification but maybe we need a targeted version?
-                // For now, using the generic one is safer to ensure delivery.
-                
-                thongBaoService.createNotification(title, content, suKien.getMaSuKien(), "Khẩn cấp");
-                
-                suKien.setDaThongBaoNhacNho(true);
-                suKienRepository.save(suKien);
+                if (!sent) {
+                    try {
+                        thongBaoService.createPersonalNotification(
+                            NotificationConstants.TITLE_EVENT_REMINDER + ": " + event.getTenSuKien(),
+                            String.format(NotificationConstants.CONTENT_EVENT_REMINDER, event.getTenSuKien(), event.getThoiGianBatDau()),
+                            p.getCccdNguoiDangKy(),
+                            NotificationConstants.URGENCY_NORMAL
+                        );
+                    } catch (Exception e) {
+                        System.err.println("Failed to send reminder for event " + event.getMaSuKien() + " to user " + p.getCccdNguoiDangKy());
+                    }
+                }
             }
         }
     }

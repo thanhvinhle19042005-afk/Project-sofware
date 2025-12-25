@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { nguoiDanAPI } from '../api';
+import { nguoiDanAPI, giaDinhAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import './Common.css';
 
@@ -12,12 +12,27 @@ const FamilyMembers = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [isChuHo, setIsChuHo] = useState(false);
 
   useEffect(() => {
     if (user?.maGiaDinh) {
+      fetchFamilyInfo();
       fetchMembers();
     }
   }, [user]);
+
+  const fetchFamilyInfo = async () => {
+    try {
+      const response = await giaDinhAPI.getById(user.maGiaDinh);
+      if (response.data && response.data.cccdChuHo === user.cccd) {
+        setIsChuHo(true);
+      } else {
+        setIsChuHo(false);
+      }
+    } catch (error) {
+      console.error('Error fetching family info:', error);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -119,9 +134,11 @@ const FamilyMembers = () => {
           <div className="search-box" style={{ visibility: 'hidden' }}>
             {/* Placeholder to keep layout */}
           </div>
-          <button className="btn-add" onClick={() => setShowAddModal(true)}>
-            + Thêm Thành viên
-          </button>
+          {isChuHo && (
+            <button className="btn-add" onClick={() => setShowAddModal(true)}>
+              + Thêm Thành viên
+            </button>
+          )}
         </div>
 
         <div className="table-container">
@@ -149,12 +166,14 @@ const FamilyMembers = () => {
                     <td>
                       {member.cccd === user.cccd ? (
                         <span className="status-badge" style={{ backgroundColor: '#e3f2fd', color: '#1976d2' }}>
-                          Chủ hộ (Bạn)
+                          {isChuHo ? 'Chủ hộ (Bạn)' : 'Thành viên (Bạn)'}
                         </span>
-                      ) : 'Thành viên'}
+                      ) : (
+                        <span>Thành viên</span>
+                      )}
                     </td>
                     <td className="actions-cell">
-                      {member.cccd !== user.cccd && (
+                      {isChuHo && member.cccd !== user.cccd && (
                         <button 
                           className="btn-delete"
                           onClick={() => handleRemoveMember(member.cccd)}
